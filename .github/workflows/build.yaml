@@ -69,6 +69,14 @@ jobs:
       - name: Build package
         run: |
           cd packages/${{ matrix.pkg }}
+          # Import vendored PGP verification keys (openssl-1.1 etc.) into the
+          # builder's keyring so makepkg can validate upstream signatures offline.
+          if compgen -G 'keys/**/*.asc' >/dev/null || compgen -G '*.pgp' >/dev/null || compgen -G 'keys/*' >/dev/null; then
+            sudo -u builder mkdir -p /home/builder/.gnupg
+            sudo -u builder gpg --batch --homedir /home/builder/.gnupg \
+              --import $(find . -path ./pkg -prune -o -path ./src -prune -o -name '*.asc' -print 2>/dev/null | head -50) \
+              || echo "(no or partial key import, continuing)"
+          fi
           sudo -u builder env BUILDDIR=/tmp/makepkg PKGDEST=/tmp/makepkg \
             makepkg --noconfirm -sf
           ls -la /tmp/makepkg/*.pkg.tar.zst
@@ -83,8 +91,16 @@ jobs:
     needs: [poll, build]
     if: always() && needs.poll.outputs.any_changed == 'true'
     runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+      options: --user root
     steps:
       - uses: actions/checkout@v4
+      - name: Install tooling (pacman already present; add gh)
+        run: |
+          pacman-key --init && pacman-key --populate archlinux
+          pacman -Syy
+          pacman -S --noconfirm --needed github-cli jq
       - name: Download latest release packages as baseline (carry forward)
         env:
           GH_TOKEN: ${{ github.token }}

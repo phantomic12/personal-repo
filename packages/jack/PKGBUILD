@@ -20,10 +20,8 @@ license=(
 makedepends=(
   alsa-lib
   db
-  celt
   doxygen
   git
-  libffado
   libsamplerate
 )
 source=(
