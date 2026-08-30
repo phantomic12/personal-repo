@@ -53,27 +53,30 @@ jobs:
       matrix:
         pkg: ${{ fromJson(needs.poll.outputs.matrix) }}
     container:
-      image: cachyos/docker-makepkg:latest
+      image: archlinux:latest
       options: --user root
     steps:
       - uses: actions/checkout@v4
       - name: Prepare container build env
         run: bash scripts/build-container-prep.sh
-      - name: Ensure package dir owned by builder
-        run: chown -R builder:builder packages/${{ matrix.pkg }}
+      - name: Set up build dirs writable by builder
+        run: |
+          # makepkg needs a writable BUILDDIR and PKGDEST; keep them under the
+          # workspace, owned by the non-root builder.
+          chown -R builder:builder packages/${{ matrix.pkg }}
+          mkdir -p /tmp/makepkg
+          chown -R builder:builder /tmp/makepkg
       - name: Build package
         run: |
           cd packages/${{ matrix.pkg }}
-          # makepkg refuses to run as root; use the builder user
-          sudo -u builder makepkg --noconfirm -sf
-          ls -la *.pkg.tar.zst
-          # Copy the built artifact into a work dir the job can upload
-          mkdir -p /tmp/out && cp *.pkg.tar.zst* /tmp/out/ 2>/dev/null || cp *.pkg.tar.zst /tmp/out/
+          sudo -u builder env BUILDDIR=/tmp/makepkg PKGDEST=/tmp/makepkg \
+            makepkg --noconfirm -sf
+          ls -la /tmp/makepkg/*.pkg.tar.zst
       - name: Upload package artifact
         uses: actions/upload-artifact@v4
         with:
           name: pkg
-          path: /tmp/out/*
+          path: /tmp/makepkg/*.pkg.tar.zst
           if-no-files-found: error
 
   assemble:

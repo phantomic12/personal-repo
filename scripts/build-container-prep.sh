@@ -1,28 +1,33 @@
 #!/usr/bin/env bash
-# Runs INSIDE the CachyOS makepkg container before building one package.
-# CachyOS docker-makepkg images come with base-devel + CachyOS repos, so
-# everything the vendored PKGBUILDs need (electron*, xrt, xrt-plugin-amdxdna,
-# dotnet, qt6, etc.) is already available. We just sync and create the builder
-# account if the image's defaults aren't usable.
+# Runs INSIDE the archlinux build container before compiling one package.
+# All deps the tracked packages need (electron*, xrt/xrt-plugin-amdxdna for the
+# NPU build, dotnet, qt6, etc.) are in stock Arch [extra]/[core], so a plain
+# archlinux base with a refreshed keyring is sufficient.
 set -euo pipefail
 
-echo ">> image: $(grep '^NAME' /etc/os-release || echo unknown)"
-echo ">> repos: $(grep -h '^\[' /etc/pacman.conf | tr '\n' ' ')"
+echo ">> image: $(grep '^PRETTY_NAME' /etc/os-release | cut -d= -f2)"
 
-# Sync fresh (CachyOS mirrors) so deps resolve to current versions
-pacman -Syu --noconfirm || { sleep 8; pacman -Syy --noconfirm; }
-pacman -S --noconfirm --needed base-devel git jq 2>/dev/null || true
+# Fresh keyring + full update from current mirrors.
+pacman-key --init
+pacman-key --populate archlinux
+pacman -Syy
+pacman -Syu --noconfirm
+pacman -S --noconfirm --needed base-devel git jq sudo
 
-# Ensure a non-root makepkg user exists.
+# Non-root builder for makepkg (refuses to run as root).
 if ! id builder >/dev/null 2>&1; then
   useradd -m -G wheel builder
   echo "builder ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/builder
   chmod 440 /etc/sudoers.d/builder
 fi
 
-# Sanity: confirm the NPU runtime resolves (fastflowlm-git depends on it)
-if ! pacman -Si xrt-plugin-amdxdna >/dev/null 2>&1; then
-  echo "WARNING: xrt-plugin-amdxdna not in container repos (fastflowlm may fail)"
-fi
+# Sanity checks: confirm the deps resolve from stock repos.
+for probe in electron39 electron42 xrt-plugin-amdxdna dotnet-sdk; do
+  if pacman -Si "$probe" >/dev/null 2>&1; then
+    echo "dep OK: $probe = $(pacman -Si "$probe" | awk '/^Version/{print $3}')"
+  else
+    echo "WARN: $probe not resolvable in this container"
+  fi
+done
 
 echo ">> build env ready"
