@@ -1,0 +1,158 @@
+{
+  "antigravity": {
+    "pkgver": "2.10.0",
+    "files": [
+      ".SRCINFO",
+      "LICENSE",
+      "LICENSES",
+      "PKGBUILD",
+      "REUSE.toml",
+      "antigravity.desktop",
+      "antigravity.png"
+    ]
+  },
+  "devin-desktop": {
+    "pkgver": "3.4.27",
+    "files": [
+      ".SRCINFO",
+      ".gitignore",
+      "PKGBUILD",
+      "code.sh"
+    ]
+  },
+  "devin-desktop-next": {
+    "pkgver": "3.8.1020_next.2d9020110a",
+    "files": [
+      ".SRCINFO",
+      "PKGBUILD",
+      "devin-desktop-next-url-handler.desktop",
+      "devin-desktop-next.desktop",
+      "devin-desktop-next.sh"
+    ]
+  },
+  "eddie-cli": {
+    "pkgver": "2.26.2",
+    "files": [
+      ".SRCINFO",
+      "PKGBUILD",
+      "eddie-cli.install"
+    ]
+  },
+  "eddie-ui": {
+    "pkgver": "2.26.2",
+    "files": [
+      ".SRCINFO",
+      "PKGBUILD",
+      "build.sh",
+      "eddie-ui.install"
+    ]
+  },
+  "fastflowlm-git": {
+    "pkgver": "0.9.34.r36.g6cabefe",
+    "files": [
+      ".SRCINFO",
+      "PKGBUILD"
+    ]
+  },
+  "jack": {
+    "pkgver": "0.126.0",
+    "files": [
+      ".SRCINFO",
+      ".gitignore",
+      "PKGBUILD"
+    ]
+  },
+  "litehtml0.9": {
+    "pkgver": "0.9",
+    "files": [
+      ".SRCINFO",
+      ".nvchecker.toml",
+      "LICENSE",
+      "LICENSES",
+      "PKGBUILD",
+      "REUSE.toml",
+      "coinstallability.patch"
+    ]
+  },
+  "openssl-1.1": {
+    "pkgver": "${_ver/[a-z]/.${_ver//[0-9.]/}}",
+    "files": [
+      ".SRCINFO",
+      ".gitignore",
+      ".nvchecker.toml",
+      "CVE-2023-5678.patch",
+      "CVE-2024-0727-1.patch",
+      "CVE-2024-0727-2.patch",
+      "CVE-2024-13176.patch",
+      "CVE-2024-2511.patch",
+      "CVE-2024-4741.patch",
+      "CVE-2024-5535-1.patch",
+      "CVE-2024-5535-2.patch",
+      "CVE-2024-5535-3.patch",
+      "CVE-2024-5535-4.patch",
+      "CVE-2024-5535-5.patch",
+      "CVE-2024-5535-6.patch",
+      "CVE-2024-5535-7.patch",
+      "CVE-2024-5535-8.patch",
+      "CVE-2024-9143.patch",
+      "CVE-2025-68160.patch",
+      "CVE-2025-69418.patch",
+      "CVE-2025-69419-1.patch",
+      "CVE-2025-69419-2.patch",
+      "CVE-2025-69420.patch",
+      "CVE-2025-69421.patch",
+      "CVE-2025-9230.patch",
+      "CVE-2026-22795_CVE-2026-22796.patch",
+      "CVE-2026-28387.patch",
+      "CVE-2026-28388-1.patch",
+      "CVE-2026-28388-2.patch",
+      "CVE-2026-28389-1.patch",
+      "CVE-2026-28389-2.patch",
+      "CVE-2026-28389.tar",
+      "CVE-2026-28390-1.patch",
+      "CVE-2026-28390-2.patch",
+      "CVE-2026-28390-3.patch",
+      "CVE-2026-28390-4.patch",
+      "CVE-2026-34180.patch",
+      "CVE-2026-42766-1.patch",
+      "CVE-2026-42766-2.patch",
+      "CVE-2026-42766.tar",
+      "CVE-2026-45447-1.patch",
+      "CVE-2026-45447-2.patch",
+      "CVE-2026-7383.patch",
+      "CVE-2026-9076-1.patch",
+      "CVE-2026-9076-2.patch",
+      "CVE-2026-9076.tar",
+      "LICENSE",
+      "LICENSES",
+      "PKGBUILD",
+      "REUSE.toml",
+      "ca-dir.patch",
+      "keys"
+    ]
+  },
+  "simplescreenrecorder": {
+    "pkgver": "0.4.4.79.ge73e",
+    "files": [
+      ".SRCINFO",
+      ".gitignore",
+      "PKGBUILD",
+      "simplescreenrecorder.install"
+    ]
+  },
+  "teamviewer": {
+    "pkgver": "15.79.4",
+    "files": [
+      ".SRCINFO",
+      "PKGBUILD",
+      "teamviewer.install"
+    ]
+  },
+  "tun2socks": {
+    "pkgver": "2.6.0",
+    "files": [
+      ".SRCINFO",
+      "PKGBUILD"
+    ]
+  }
+}

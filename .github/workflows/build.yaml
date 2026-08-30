@@ -1,0 +1,187 @@
+name: Build personal pacman repo
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'   # poll AUR for updates every 15 minutes
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: personal-repo
+  cancel-in-progress: false
+
+env:
+  REPO_NAME: personal
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.poll.outputs.matrix }}
+      any_changed: ${{ steps.poll.outputs.any_changed }}
+      obsolete: ${{ steps.poll.outputs.obsolete }}
+      versions: ${{ steps.poll.outputs.versions }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Poll AUR for version changes
+        id: poll
+        run: |
+          python3 scripts/poll.py > poll.json
+          CHANGED=$(python3 -c "import json;d=json.load(open('poll.json'));print(' '.join(d['changed']))")
+          OBS=$(python3 -c "import json;d=json.load(open('poll.json'));print(' '.join(d['obsolete']))")
+          VER=$(python3 -c "import json;d=json.load(open('poll.json'));print(json.dumps(d['versions'],separators=(',',':')))")
+          echo "changed=[$CHANGED] obsolete=[$OBS]"
+          MATRIX=$(python3 -c "import json;d=json.load(open('poll.json'));print(json.dumps(d['changed']))")
+          echo "matrix=${MATRIX}" >> "$GITHUB_OUTPUT"
+          echo "obsolete=${OBS}" >> "$GITHUB_OUTPUT"
+          echo "versions=${VER}" >> "$GITHUB_OUTPUT"
+          if [ -n "$CHANGED" ]; then echo "any_changed=true" >> "$GITHUB_OUTPUT"; else echo "any_changed=false" >> "$GITHUB_OUTPUT"; fi
+
+  build:
+    needs: poll
+    if: needs.poll.outputs.any_changed == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        pkg: ${{ fromJson(needs.poll.outputs.matrix) }}
+    container:
+      image: cachyos/docker-makepkg:latest
+      options: --user root
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare container build env
+        run: bash scripts/build-container-prep.sh
+      - name: Ensure package dir owned by builder
+        run: chown -R builder:builder packages/${{ matrix.pkg }}
+      - name: Build package
+        run: |
+          cd packages/${{ matrix.pkg }}
+          # makepkg refuses to run as root; use the builder user
+          sudo -u builder makepkg --noconfirm -sf
+          ls -la *.pkg.tar.zst
+          # Copy the built artifact into a work dir the job can upload
+          mkdir -p /tmp/out && cp *.pkg.tar.zst* /tmp/out/ 2>/dev/null || cp *.pkg.tar.zst /tmp/out/
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pkg
+          path: /tmp/out/*
+          if-no-files-found: error
+
+  assemble:
+    needs: [poll, build]
+    if: always() && needs.poll.outputs.any_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download latest release packages as baseline (carry forward)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p repo
+          # Find the most recent release tagged personal-* if any
+          RELEASE=$(gh release list --repo "${{ github.repository }}" --limit 1 \
+            --json tagName --jq '.[0].tagName // empty')
+          if [ -n "$RELEASE" ]; then
+            gh release download "$RELEASE" --repo "${{ github.repository }}" \
+              --pattern '*.pkg.tar.zst' --dir repo || echo "no prior pkgs"
+            echo "baseline from release $RELEASE: $(ls repo/*.pkg.tar.zst 2>/dev/null | wc -l) packages"
+          else
+            echo "no prior release; fresh baseline"
+          fi
+      - name: Overlay newly built packages
+        uses: actions/download-artifact@v4
+        with:
+          path: built
+          merge-multiple: true
+      - name: Stage full repo (baseline + new), drop obsolete
+        run: |
+          find built -name '*.pkg.tar.zst' -exec cp {} repo/ \;
+          # Remove packages flagged obsolete (dropped from AUR or no longer tracked)
+          for obs in ${{ needs.poll.outputs.obsolete }}; do
+            echo "removing obsolete: $obs"
+            rm -f repo/${obs}-*.pkg.tar.zst
+          done
+          echo "total staged: $(ls repo/*.pkg.tar.zst | wc -l)"
+          ls -la repo/
+      - name: Build + refresh repo database
+        run: |
+          cd repo
+          # --remove drops superseded versions of the same package, keeping the
+          # newest .zst for each name already present in the dir.
+          repo-add --new --remove "${REPO_NAME}.db.tar.gz" *.pkg.tar.zst
+          ls -la
+      - name: Generate index.html
+        run: |
+          cat > repo/index.html <<'EOF'
+          <!DOCTYPE html>
+          <html lang="en"><head><meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <title>personal — phantomic12 pacman repo</title>
+          <style>
+            body{font-family:system-ui,sans-serif;max-width:720px;margin:3rem auto;padding:0 1rem;line-height:1.6}
+            code,pre{background:#f4f4f5;padding:.15em .4em;border-radius:4px}pre{padding:1rem;overflow-x:auto}
+            table{border-collapse:collapse;width:100%}th,td{text-align:left;padding:.5rem;border-bottom:1px solid #e4e4e7}
+            a{color:#2563eb}
+          </style></head><body>
+          <h1>personal pacman repository</h1>
+          <p>A personal Arch Linux binary repo for <code>phantomic12</code>. Packages are polled from the
+          AUR every 15 minutes, built in GitHub Actions, and served from this GitHub Pages site.</p>
+          <h2>Setup</h2>
+          <p>Add to <code>/etc/pacman.conf</code>:</p>
+          <pre>[personal]
+          SigLevel = Optional TrustAll
+          Server = https://phantomic12.github.io/personal-repo/</pre>
+          <p>Then <code>sudo pacman -Sy</code>.</p>
+          <h2>Packages</h2>
+          <table><tr><th>Package</th><th>File</th></tr>
+          EOF
+          for f in repo/*.pkg.tar.zst; do
+            base=$(basename "$f")
+            echo "  <tr><td>${base%-*}</td><td><a href=\"$base\">$base</a></td></tr>" >> repo/index.html
+          done
+          cat >> repo/index.html <<'EOF'
+          </table>
+          <p>The repository root is this directory; pacman's <code>Server</code> points directly here.</p>
+          </body></html>
+          EOF
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: repo
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4
+      - name: Update state.json (merge built versions, drop obsolete)
+        run: |
+          python3 scripts/gen-state.py ${{ needs.poll.outputs.obsolete }}
+      - name: Commit updated state
+        run: |
+          git config user.name 'GitHub Action'
+          git config user.email 'action@github.com'
+          git add state.json
+          git diff --cached --quiet || git commit -m "chore: record published versions [skip ci]"
+          git push
+      - name: Publish release (latest snapshot) and delete older ones
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${REPO_NAME}-$(date +%Y%m%d%H%M%S)"
+          gh release create "$TAG" repo/*.pkg.tar.zst repo/${REPO_NAME}.db.tar.gz \
+            --repo "${{ github.repository }}" \
+            --title "personal repo @ $(date -u)" \
+            --notes "Full current snapshot; baseline for the next delta build." || true
+          # Keep only the newest release so assets don't grow unbounded.
+          KEEP=1
+          gh release list --repo "${{ github.repository }}" --limit 10 --json tagName \
+            --jq '.[].tagName' | tail -n +$((KEEP+1)) | while read t; do
+              gh release delete "$t" --repo "${{ github.repository }}" --yes || true
+            done

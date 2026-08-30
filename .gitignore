@@ -1,0 +1,23 @@
+# Build artifacts (GHA rebuilds these in clean containers)
+packages/*/pkg/
+packages/*/src/
+packages/*/*.pkg.tar.zst
+packages/*/*.pkg.tar.zst.sig
+packages/*/*.deb
+packages/*/*.tar.gz
+packages/*/*.tar.xz
+packages/*/*.tar.zst
+packages/*/*.zip
+packages/*/yay/
+packages/*/*.log
+packages/*/fastflowlm/
+packages/*/litehtml/
+
+# Local assembled repo (produced by the workflow, served via Pages, not committed)
+repo/*.pkg.tar.zst
+repo/*.db*
+repo/*.files*
+repo/index.html
+
+# Generated poll output
+poll.json
