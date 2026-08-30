@@ -21,3 +21,5 @@ repo/index.html
 
 # Generated poll output
 poll.json
+__pycache__/
+*.pyc

@@ -96,7 +96,7 @@ jobs:
         run: |
           pacman-key --init && pacman-key --populate archlinux
           pacman -Syy
-          pacman -S --noconfirm --needed github-cli jq python
+          pacman -S --noconfirm --needed github-cli jq python git
       - name: Download latest release packages as baseline (carry forward)
         env:
           GH_TOKEN: ${{ github.token }}
