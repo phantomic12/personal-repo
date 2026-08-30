@@ -69,14 +69,10 @@ jobs:
       - name: Build package
         run: |
           cd packages/${{ matrix.pkg }}
-          # Import vendored PGP verification keys (openssl-1.1 etc.) into the
-          # builder's keyring so makepkg can validate upstream signatures offline.
-          if compgen -G 'keys/**/*.asc' >/dev/null || compgen -G '*.pgp' >/dev/null || compgen -G 'keys/*' >/dev/null; then
-            sudo -u builder mkdir -p /home/builder/.gnupg
-            sudo -u builder gpg --batch --homedir /home/builder/.gnupg \
-              --import $(find . -path ./pkg -prune -o -path ./src -prune -o -name '*.asc' -print 2>/dev/null | head -50) \
-              || echo "(no or partial key import, continuing)"
-          fi
+          # Import PGP verification keys (vendored + validpgpkeys from a keyserver)
+          # so makepkg can validate git-signed tags and .asc sources.
+          sudo -u builder python3 ${GITHUB_WORKSPACE}/scripts/import-keys.py \
+            || echo "(key import incomplete, continuing)"
           sudo -u builder env BUILDDIR=/tmp/makepkg PKGDEST=/tmp/makepkg \
             makepkg --noconfirm -sf
           ls -la /tmp/makepkg/*.pkg.tar.zst
