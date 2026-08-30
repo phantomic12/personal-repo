@@ -179,12 +179,21 @@ jobs:
         run: |
           python3 scripts/gen-state.py ${{ needs.poll.outputs.obsolete }}
       - name: Commit updated state
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
+          cd "${GITHUB_WORKSPACE}"
           git config user.name 'GitHub Action'
           git config user.email 'action@github.com'
           git add state.json
-          git diff --cached --quiet || git commit -m "chore: record published versions [skip ci]"
-          git push
+          if git diff --cached --quiet; then
+            echo "no state change to commit"
+          else
+            git -c credential.helper= -c http.extraheader="AUTHORIZATION: bearer ${GH_TOKEN}" \
+              commit -m "chore: record published versions [skip ci]"
+            git -c credential.helper= -c http.extraheader="AUTHORIZATION: bearer ${GH_TOKEN}" \
+              push
+          fi
       - name: Publish release (latest snapshot) and delete older ones
         env:
           GH_TOKEN: ${{ github.token }}

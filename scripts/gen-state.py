@@ -29,7 +29,10 @@ def main():
     built = {}
     for f in glob.glob(os.path.join(REPO_DIR, "*.pkg.tar.zst")):
         base = os.path.basename(f)[: -len(".pkg.tar.zst")]
-        for n in tracked:
+        if "-debug" in base:
+            continue  # skip debug variants, they are not separate tracked packages
+        # Longest name match first so devin-desktop-next wins over devin-desktop.
+        for n in sorted(tracked, key=len, reverse=True):
             if base.startswith(n + "-"):
                 rest = base[len(n) + 1:]
                 rest = rest.rsplit("-", 1)[0]   # drop arch -> "pkgver-pkgrel"
