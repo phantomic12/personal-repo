@@ -15,6 +15,18 @@ automatically by GitHub Actions.
 This is specifically a *binary* repo so you don't have to compile AUR packages
 by hand. The vendored PKGBUILDs live in [`packages/`](packages/).
 
+## Install (one-liner)
+
+Runs the included `install-repo.sh`: adds the `[personal]` block to
+`/etc/pacman.conf` and syncs the package database:
+
+    curl -fsSL https://raw.githubusercontent.com/phantomic12/personal-repo/main/install-repo.sh | sudo bash -s -- --apply
+
+Safe to re-run (idempotent). To preview first without touching anything, drop
+the `--apply`:
+
+    curl -fsSL https://raw.githubusercontent.com/phantomic12/personal-repo/main/install-repo.sh | bash
+
 ## The repo URL (direct link)
 
 The Pages site root **is** the pacman repository root. Packages, the database and
