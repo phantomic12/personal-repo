@@ -187,6 +187,9 @@ jobs:
           # time, so actions/checkout falls back to a tarball download and never
           # creates a .git dir. Bootstrap the repo so we can commit state.json.
           git init -q
+          # Workspace dir ownership is set by the runner's bind mount, not by this
+          # root user — whitelist it so git doesn't refuse the repo as "dubious".
+          git config --global --add safe.directory '*'
           git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git fetch -q origin main
           git reset -q origin/main
