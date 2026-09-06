@@ -183,16 +183,21 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cd "${GITHUB_WORKSPACE}"
+          # The assemble container is archlinux:latest, which has NO git at checkout
+          # time, so actions/checkout falls back to a tarball download and never
+          # creates a .git dir. Bootstrap the repo so we can commit state.json.
+          git init -q
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git fetch -q origin main
+          git reset -q origin/main
           git config user.name 'GitHub Action'
           git config user.email 'action@github.com'
           git add state.json
           if git diff --cached --quiet; then
             echo "no state change to commit"
           else
-            git -c credential.helper= -c http.extraheader="AUTHORIZATION: bearer ${GH_TOKEN}" \
-              commit -m "chore: record published versions [skip ci]"
-            git -c credential.helper= -c http.extraheader="AUTHORIZATION: bearer ${GH_TOKEN}" \
-              push
+            git commit -m "chore: record published versions [skip ci]"
+            git push -q origin HEAD:main
           fi
       - name: Publish release (latest snapshot) and delete older ones
         env:
