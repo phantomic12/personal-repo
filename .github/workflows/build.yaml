@@ -66,6 +66,13 @@ jobs:
           chown -R builder:builder packages/${{ matrix.pkg }}
           mkdir -p /tmp/makepkg
           chown -R builder:builder /tmp/makepkg
+      - name: Sync PKGBUILD from AUR (pull latest upstream source)
+        run: |
+          # The vendored packages/<pkg>/ may be stale. Clone the current AUR
+          # repo and replace the vendored files so makepkg builds the version
+          # the poller detected, not an old snapshot.
+          python3 scripts/sync-aur.py ${{ matrix.pkg }}
+          chown -R builder:builder packages/${{ matrix.pkg }}
       - name: Build package
         run: |
           cd packages/${{ matrix.pkg }}
