@@ -1,11 +1,23 @@
 name: Build personal pacman repo
 
 on:
-  schedule:
-    - cron: '*/15 * * * *'   # poll AUR for updates every 15 minutes
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      packages:
+        description: 'JSON array of package names to build'
+        required: true
+        type: string
+      obsolete:
+        description: 'Space-separated list of obsolete packages to drop'
+        required: false
+        default: ''
+        type: string
   push:
     branches: [main]
+    paths:
+      - 'scripts/build-container-prep.sh'
+      - 'scripts/sync-aur.py'
+      - 'scripts/import-keys.py'
 
 permissions:
   contents: write
@@ -13,45 +25,20 @@ permissions:
   id-token: write
 
 concurrency:
-  group: personal-repo
+  group: personal-repo-build
   cancel-in-progress: false
 
 env:
   REPO_NAME: personal
 
 jobs:
-  poll:
-    runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.poll.outputs.matrix }}
-      any_changed: ${{ steps.poll.outputs.any_changed }}
-      obsolete: ${{ steps.poll.outputs.obsolete }}
-      versions: ${{ steps.poll.outputs.versions }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Poll AUR for version changes
-        id: poll
-        run: |
-          python3 scripts/poll.py > poll.json
-          CHANGED=$(python3 -c "import json;d=json.load(open('poll.json'));print(' '.join(d['changed']))")
-          OBS=$(python3 -c "import json;d=json.load(open('poll.json'));print(' '.join(d['obsolete']))")
-          VER=$(python3 -c "import json;d=json.load(open('poll.json'));print(json.dumps(d['versions'],separators=(',',':')))")
-          echo "changed=[$CHANGED] obsolete=[$OBS]"
-          MATRIX=$(python3 -c "import json;d=json.load(open('poll.json'));print(json.dumps(d['changed']))")
-          echo "matrix=${MATRIX}" >> "$GITHUB_OUTPUT"
-          echo "obsolete=${OBS}" >> "$GITHUB_OUTPUT"
-          echo "versions=${VER}" >> "$GITHUB_OUTPUT"
-          if [ -n "$CHANGED" ]; then echo "any_changed=true" >> "$GITHUB_OUTPUT"; else echo "any_changed=false" >> "$GITHUB_OUTPUT"; fi
-
   build:
-    needs: poll
-    if: needs.poll.outputs.any_changed == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       max-parallel: 6
       matrix:
-        pkg: ${{ fromJson(needs.poll.outputs.matrix) }}
+        pkg: ${{ fromJson(github.event_name == 'workflow_dispatch' && inputs.packages || '["antigravity","devin-desktop","devin-desktop-next","eddie-cli","eddie-ui","fastflowlm-git","jack","litehtml0.9","openssl-1.1","simplescreenrecorder","teamviewer","tun2socks"]') }}
     container:
       image: archlinux:latest
       options: --user root
@@ -91,8 +78,8 @@ jobs:
           if-no-files-found: error
 
   assemble:
-    needs: [poll, build]
-    if: always() && needs.poll.outputs.any_changed == 'true'
+    needs: build
+    if: always() && !cancelled() && needs.build.result == 'success'
     runs-on: ubuntu-latest
     container:
       image: archlinux:latest
@@ -128,7 +115,8 @@ jobs:
         run: |
           find built -name '*.pkg.tar.zst' -exec cp {} repo/ \;
           # Remove packages flagged obsolete (dropped from AUR or no longer tracked)
-          for obs in ${{ needs.poll.outputs.obsolete }}; do
+          OBS="${{ inputs.obsolete }}"
+          for obs in $OBS; do
             echo "removing obsolete: $obs"
             rm -f repo/${obs}-*.pkg.tar.zst
           done
@@ -184,7 +172,8 @@ jobs:
         uses: actions/deploy-pages@v4
       - name: Update state.json (merge built versions, drop obsolete)
         run: |
-          python3 scripts/gen-state.py ${{ needs.poll.outputs.obsolete }}
+          OBS="${{ inputs.obsolete }}"
+          python3 scripts/gen-state.py $OBS
       - name: Commit updated state
         env:
           GH_TOKEN: ${{ github.token }}

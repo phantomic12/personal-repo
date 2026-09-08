@@ -1,0 +1,47 @@
+name: Poll AUR for updates
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'   # poll AUR for updates every 15 minutes
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths:
+      - 'packages.json'
+      - 'state.json'
+      - 'scripts/poll.py'
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: personal-repo-poll
+  cancel-in-progress: false
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Poll AUR for version changes
+        id: poll
+        run: |
+          python3 scripts/poll.py > poll.json
+          CHANGED=$(python3 -c "import json;d=json.load(open('poll.json'));print(' '.join(d['changed']))")
+          OBS=$(python3 -c "import json;d=json.load(open('poll.json'));print(' '.join(d['obsolete']))")
+          MATRIX=$(python3 -c "import json;d=json.load(open('poll.json'));print(json.dumps(d['changed']))")
+          echo "changed=[$CHANGED] obsolete=[$OBS]"
+          echo "matrix=${MATRIX}" >> "$GITHUB_OUTPUT"
+          echo "obsolete=${OBS}" >> "$GITHUB_OUTPUT"
+          if [ -n "$CHANGED" ]; then echo "any_changed=true" >> "$GITHUB_OUTPUT"; else echo "any_changed=false" >> "$GITHUB_OUTPUT"; fi
+      - name: Dispatch build workflow
+        if: steps.poll.outputs.any_changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run build.yaml \
+            -f packages='${{ steps.poll.outputs.matrix }}' \
+            -f obsolete='${{ steps.poll.outputs.obsolete }}' \
+            --repo "${{ github.repository }}"
+          echo "dispatched build workflow for: ${{ steps.poll.outputs.matrix }}"
