@@ -43,7 +43,7 @@ jobs:
       image: archlinux:latest
       options: --user root
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Prepare container build env
         run: bash scripts/build-container-prep.sh
       - name: Set up build dirs writable by builder
@@ -85,7 +85,7 @@ jobs:
       image: archlinux:latest
       options: --user root
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install tooling (pacman already present; add gh)
         run: |
           pacman-key --init && pacman-key --populate archlinux
