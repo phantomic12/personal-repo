@@ -1,0 +1,39 @@
+name: Add AUR package
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: 'AUR package name to add to the repo'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  add:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate + vendor + register package
+        id: add
+        run: |
+          python3 scripts/add-package.py "${{ inputs.package }}"
+
+      - name: Commit and push
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config --global --add safe.directory '*'
+          git config user.name 'GitHub Action'
+          git config user.email 'action@github.com'
+          git add packages.json packages/${{ inputs.package }}
+          if git diff --cached --quiet; then
+            echo "no change to commit"
+          else
+            git commit -m "add package: ${{ inputs.package }}"
+            git push origin HEAD:main
+            echo "pushed. poll workflow will detect it and trigger a build."
+          fi
