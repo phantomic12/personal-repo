@@ -120,6 +120,33 @@ jobs:
             echo "removing obsolete: $obs"
             rm -f repo/${obs}-*.pkg.tar.zst
           done
+          # Dedupe: keep only the newest version of each package name.
+          # repo-add --remove picks the wrong winner when two versions of the
+          # same pkg are staged (alphabetical order, not vercmp), so we must
+          # prune old files ourselves before it runs.
+          python3 - <<'PY'
+          import glob, os, re, subprocess
+          groups = {}
+          for f in glob.glob('repo/*.pkg.tar.zst'):
+              base = os.path.basename(f)
+              m = re.match(r'(.+)-[^-]+-[^-]+-x86_64\.pkg\.tar\.zst$', base)
+              if m:
+                  groups.setdefault(m.group(1), []).append(f)
+          def verkey(p, name):
+              b = os.path.basename(p)
+              return re.sub(r'-x86_64\.pkg\.tar\.zst$', '', b)[len(name) + 1:]
+          for name, paths in groups.items():
+              if len(paths) <= 1:
+                  continue
+              best = paths[0]
+              for p in paths[1:]:
+                  if subprocess.call(['vercmp', verkey(p, name), verkey(best, name)]) > 0:
+                      best = p
+              for p in paths:
+                  if p != best:
+                      print(f'dedupe: removing old {os.path.basename(p)}')
+                      os.remove(p)
+          PY
           echo "total staged: $(ls repo/*.pkg.tar.zst | wc -l)"
           ls -la repo/
       - name: Build + refresh repo database
@@ -127,7 +154,7 @@ jobs:
           cd repo
           # --remove drops superseded versions of the same package, keeping the
           # newest .zst for each name already present in the dir.
-          repo-add --new --remove "${REPO_NAME}.db.tar.gz" *.pkg.tar.zst
+          repo-add --remove "${REPO_NAME}.db.tar.gz" *.pkg.tar.zst
           ls -la
       - name: Generate index.html
         run: |
