@@ -154,5 +154,12 @@
       ".SRCINFO",
       "PKGBUILD"
     ]
+  },
+  "freebuff-bin": {
+    "pkgver": "0.0.175-1",
+    "files": [
+      ".SRCINFO",
+      "PKGBUILD"
+    ]
   }
 }

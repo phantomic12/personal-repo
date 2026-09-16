@@ -1,0 +1,19 @@
+pkgbase = freebuff-bin
+	pkgdesc = Free AI coding agent for the terminal, by Codebuff
+	pkgver = 0.0.175
+	pkgrel = 1
+	url = https://freebuff.com
+	arch = x86_64
+	arch = aarch64
+	license = Apache-2.0
+	depends = glibc
+	provides = freebuff
+	conflicts = freebuff
+	options = !strip
+	options = !debug
+	source_x86_64 = freebuff-bin-0.0.175-x86_64.tar.gz::https://codebuff.com/api/releases/download/0.0.175/freebuff-linux-x64.tar.gz
+	sha256sums_x86_64 = 3a38960e791a262f86af1681f46f9a40fe379a5ffa9c65144a3a8e4935905a34
+	source_aarch64 = freebuff-bin-0.0.175-aarch64.tar.gz::https://codebuff.com/api/releases/download/0.0.175/freebuff-linux-arm64.tar.gz
+	sha256sums_aarch64 = ef53ea2f1a7eda4dbcb42b3b6aef9b2bc393e3164cd92cbc0055e7264000576b
+
+pkgname = freebuff-bin
