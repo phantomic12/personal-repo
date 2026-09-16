@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   add:
@@ -35,5 +36,12 @@ jobs:
           else
             git commit -m "add package: ${{ inputs.package }}"
             git push origin HEAD:main
-            echo "pushed. poll workflow will detect it and trigger a build."
+            echo "pushed."
           fi
+
+      - name: Dispatch poll workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run poll.yaml --repo "${{ github.repository }}"
+          echo "dispatched poll workflow — it will detect the new package and trigger a build"
