@@ -30,11 +30,13 @@ jobs:
           git config --global --add safe.directory '*'
           git config user.name 'GitHub Action'
           git config user.email 'action@github.com'
-          git add packages.json packages/${{ inputs.package }}
+          # add-package.py may vendor multiple packages (AUR-only dep closure),
+          # so stage every package dir it touched, not just the requested one.
+          git add packages.json packages/
           if git diff --cached --quiet; then
             echo "no change to commit"
           else
-            git commit -m "add package: ${{ inputs.package }}"
+            git commit -m "add package: ${{ inputs.package }} (+AUR dep closure)"
             git push origin HEAD:main
             echo "pushed."
           fi

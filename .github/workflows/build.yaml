@@ -59,7 +59,21 @@ jobs:
           # repo and replace the vendored files so makepkg builds the version
           # the poller detected, not an old snapshot.
           python3 scripts/sync-aur.py ${{ matrix.pkg }}
+          # Optional per-package fixup hook: scripts/patches/<pkg>.sh runs
+          # inside packages/<pkg>/ after every AUR re-sync. Use it for
+          # downstream-only fixes that upstream AUR hasn't merged (the
+          # vendored copy gets wiped by each sync, so edits there don't stick).
+          if [ -f scripts/patches/${{ matrix.pkg }}.sh ]; then
+            echo "applying patches/${{ matrix.pkg }}.sh"
+            (cd packages/${{ matrix.pkg }} && bash "${GITHUB_WORKSPACE}/scripts/patches/${{ matrix.pkg }}.sh")
+          fi
           chown -R builder:builder packages/${{ matrix.pkg }}
+      - name: Build AUR-only deps not yet in any repo
+        run: |
+          # Deps vendored by add-package.py's closure resolution that aren't
+          # published yet (first build after adding) get built+installed here
+          # so the parent's makepkg -s can find them.
+          bash scripts/build-aur-deps.sh ${{ matrix.pkg }}
       - name: Build package
         run: |
           cd packages/${{ matrix.pkg }}

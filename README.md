@@ -95,9 +95,18 @@ Then sync and install:
 
 ## Adding / removing a package
 
-Add a package: clone its AUR snapshot into `packages/<name>/`, add the key to
-`packages.json`, and delete its `state.json` entry (or leave it — an empty/missing
-state entry means it builds on the next poll). Then push.
+Add a package: run the `Add AUR package` workflow (or `scripts/add-package.py
+<name>` locally). It resolves the package's AUR-only dependency closure —
+deps that Arch core/extra, CachyOS (x86_64 + v3), and Chaotic-AUR do NOT
+already carry — vendors each one into `packages/<name>/`, and registers all
+of them in `packages.json`. Deps already in those repos are skipped, so the
+repo only builds what binary repos can't provide. Missing `state.json`
+entries mean everything new builds on the next poll.
+
+Inside the build container, `scripts/build-aur-deps.sh` builds+installs any
+vendored dep that isn't published yet (first-build race), and
+`scripts/patches/<pkg>.sh` applies downstream-only PKGBUILD fixups after
+each AUR re-sync.
 
 Remove a package: delete the entry from `packages.json` and remove `packages/<name>/`.
 The next build prunes it from the repo and the Pages site.

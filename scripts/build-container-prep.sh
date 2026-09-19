@@ -14,6 +14,22 @@ pacman -Syy
 pacman -Syu --noconfirm
 pacman -S --noconfirm --needed base-devel git jq sudo
 
+# Add Chaotic-AUR + this personal repo so makepkg -s can install AUR deps
+# that were already published (either prebuilt by Chaotic or built here in a
+# previous run). Deps added in the SAME add-package run still race — matrix
+# jobs run in parallel — but on the next poll cycle they resolve.
+cat >> /etc/pacman.conf <<'EOF'
+
+[chaotic-aur]
+SigLevel = Optional TrustAll
+Server = https://cdn-mirror.chaotic.cx/chaotic-aur/x86_64
+
+[personal]
+SigLevel = Optional TrustAll
+Server = https://phantomic12.github.io/personal-repo/
+EOF
+pacman -Syy --noconfirm
+
 # Non-root builder for makepkg (refuses to run as root).
 if ! id builder >/dev/null 2>&1; then
   useradd -m -G wheel builder
