@@ -28,7 +28,11 @@ Server = https://cdn-mirror.chaotic.cx/chaotic-aur/x86_64
 SigLevel = Optional TrustAll
 Server = https://phantomic12.github.io/personal-repo/
 EOF
-pacman -Syy --noconfirm
+# Sync the extra repos but don't die if a CDN 503s — deps that only live in
+# chaotic/personal will just fail later in makepkg with a clearer error, and
+# most builds don't need them at all. Retry once after a short wait.
+pacman -Syy --noconfirm || { sleep 10; pacman -Syy --noconfirm; } \
+  || echo "WARN: repo sync failed (transient CDN error?) — continuing"
 
 # Non-root builder for makepkg (refuses to run as root).
 if ! id builder >/dev/null 2>&1; then
