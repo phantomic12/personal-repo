@@ -22,6 +22,8 @@ cat >> /etc/pacman.conf <<'EOF'
 
 [chaotic-aur]
 SigLevel = Optional TrustAll
+Server = https://builds.garudalinux.org/repos/chaotic-aur/x86_64
+Server = https://geo-mirror.chaotic.cx/chaotic-aur/x86_64
 Server = https://cdn-mirror.chaotic.cx/chaotic-aur/x86_64
 
 [personal]

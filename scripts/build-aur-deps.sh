@@ -17,13 +17,15 @@ declare -A DONE=()
 dep_names() {
   # Print depends+makedepends from a package dir's PKGBUILD/.SRCINFO.
   # Prefer .SRCINFO (pre-parsed); fall back to makepkg --printsrcinfo.
+  # Soname deps (libfoo.so) are auto-detected by makepkg at build time and
+  # aren't pacman-visible names — filter them out.
   local dir="$1"
   if [ -f "$dir/.SRCINFO" ]; then
     awk '/^\s*(make)?depends\s*=/ {print $3}' "$dir/.SRCINFO"
   else
     (cd "$dir" && makepkg --printsrcinfo 2>/dev/null) \
       | awk '/^\s*(make)?depends\s*=/ {print $3}'
-  fi | sed -E 's/[<>=].*$//' | sort -u
+  fi | sed -E 's/[<>=].*$//' | grep -v '\.so' | sort -u
 }
 
 build_one() {

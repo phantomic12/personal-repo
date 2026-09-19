@@ -169,5 +169,13 @@
       "PKGBUILD",
       "cline-desktop.desktop"
     ]
+  },
+  "celt": {
+    "pkgver": "0.11.3-7",
+    "files": [
+      ".SRCINFO",
+      "010-celt-fix-tandem-test.patch",
+      "PKGBUILD"
+    ]
   }
 }
