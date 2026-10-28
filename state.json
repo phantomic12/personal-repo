@@ -1,7 +1,7 @@
 {
   "antigravity": "2.24.0-1",
-  "devin-desktop": "3.10.48-1",
-  "devin-desktop-next": "3.10.1031_next.b98cc43128-1",
+  "devin-desktop": "3.11.228-1",
+  "devin-desktop-next": "3.11.1228_next.053434014d-1",
   "eddie-cli": "2.26.2-1",
   "eddie-ui": "2.26.2-1",
   "fastflowlm-git": "0.9.34.r36.g6cabefe-1",
@@ -11,7 +11,7 @@
   "simplescreenrecorder": "0.4.4.79.ge73e-4",
   "teamviewer": "15.81.5-1",
   "tun2socks": "2.6.0-1",
-  "freebuff-bin": "0.2.32-1",
+  "freebuff-bin": "0.2.34-1",
   "cline-desktop": "0.0.43-1",
   "celt": "0.11.3-7"
 }
