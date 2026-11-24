@@ -1,5 +1,5 @@
 {
-  "antigravity": "2.29.0-1",
+  "antigravity": "2.34.0-1",
   "devin-desktop": "3.11.228-1",
   "devin-desktop-next": "3.11.1238_next.9e593c73d4-1",
   "eddie-cli": "2.26.2-1",
@@ -9,9 +9,9 @@
   "litehtml0.9": "0.9-4",
   "openssl-1.1": "1.1.1.w-13",
   "simplescreenrecorder": "0.4.4.79.ge73e-4",
-  "teamviewer": "15.81.5-1",
+  "teamviewer": "15.83.3-1",
   "tun2socks": "2.6.0-1",
-  "freebuff-bin": "0.2.34-1",
+  "freebuff-bin": "0.2.36-1",
   "cline-desktop": "0.0.43-1",
   "celt": "0.11.3-7"
 }
